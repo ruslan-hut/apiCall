@@ -21,6 +21,8 @@ const (
 
 type ApiResponse struct {
 	Success bool                     `json:"success"`
+	Message string                   `json:"message"`
+	Errors  []string                 `json:"errors"`
 	Data    []map[string]interface{} `json:"data"`
 	Meta    PageData                 `json:"meta"`
 }
@@ -28,6 +30,12 @@ type ApiResponse struct {
 type PageData struct {
 	Page  int `json:"page"`
 	Total int `json:"totalPage"`
+}
+
+type Api struct {
+	url        string
+	inputPath  string
+	outputPath string
 }
 
 func main() {
@@ -54,8 +62,15 @@ func main() {
 		return
 	}
 
-	_ = os.Remove("errors.log")
-	file, err := os.OpenFile("errors.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	api := Api{
+		url:        fmt.Sprintf("%s%s", baseUrl, *apiURL),
+		inputPath:  conf.InputPath,
+		outputPath: conf.OutputPath,
+	}
+
+	logFile := fmt.Sprintf("%serrors.log", conf.OutputPath)
+	_ = os.Remove(logFile)
+	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("opening or creating log file: %v\n", err)
 		return
@@ -69,24 +84,23 @@ func main() {
 	}(file)
 	os.Stdout = file
 
-	RemoveFiles()
+	api.removeFiles()
 
-	fullPath := fmt.Sprintf("%s%s", baseUrl, *apiURL)
 	method := strings.ToUpper(*apiMethod)
 
 	var jsonBytes []byte
 	if method != "GET" {
-		jsonBytes, _ = prepareBody()
+		jsonBytes, _ = prepareBody(conf.InputPath)
 	}
 
-	doHttpMethod(method, fullPath, jsonBytes, outputFile)
+	api.doHttpMethod(method, jsonBytes, outputFile)
 
 }
 
-func doHttpMethod(method string, apiUrl string, data []byte, output string) {
-	fmt.Printf("%s: %s\n", method, apiUrl)
+func (a *Api) doHttpMethod(method string, data []byte, output string) {
+	fmt.Printf("%s: %s\n", method, a.url)
 
-	req, err := http.NewRequest(method, apiUrl, bytes.NewBuffer(data))
+	req, err := http.NewRequest(method, a.url, bytes.NewBuffer(data))
 	if err != nil {
 		fmt.Println("#Error: creating request:", err)
 		return
@@ -124,13 +138,23 @@ func doHttpMethod(method string, apiUrl string, data []byte, output string) {
 		return
 	}
 
-	saveResponse(apiResponse, output)
+	if !apiResponse.Success {
+		if apiResponse.Message != "" {
+			fmt.Println("#Error: ", apiResponse.Message)
+		}
+		if len(apiResponse.Errors) > 0 {
+			fmt.Println("#Error: ", apiResponse.Errors)
+		}
+		return
+	}
+
+	a.saveResponse(apiResponse, output)
 
 	if apiResponse.Meta.Total > apiResponse.Meta.Page {
 		nextPage := apiResponse.Meta.Page + 1
 		fmt.Printf("fetching page %d of %d...\n", nextPage, apiResponse.Meta.Total)
 
-		parsedParams, err := url.Parse(apiUrl)
+		parsedParams, err := url.Parse(a.url)
 		if err != nil {
 			fmt.Println("#Error: parsing URL:", err)
 			return
@@ -138,20 +162,20 @@ func doHttpMethod(method string, apiUrl string, data []byte, output string) {
 		params := parsedParams.Query()
 		params.Set("page", fmt.Sprintf("%d", nextPage))
 		parsedParams.RawQuery = params.Encode()
-		apiUrl = parsedParams.String()
+		a.url = parsedParams.String()
 
-		doHttpMethod("GET", apiUrl, nil, fmt.Sprintf("output_%d.csv", nextPage))
+		a.doHttpMethod("GET", nil, fmt.Sprintf("output_%d.csv", nextPage))
 	}
 }
 
-func saveResponse(response ApiResponse, output string) {
+func (a *Api) saveResponse(response ApiResponse, output string) {
 	if !response.Success {
 		fmt.Println("#Error: call was not successful")
 		return
 	}
 
 	// Create CSV file
-	csvFile, err := os.Create(output)
+	csvFile, err := os.Create(fmt.Sprintf("%s%s", a.outputPath, output))
 	if err != nil {
 		fmt.Println("#Error: creating CSV file:", err)
 		return
@@ -205,8 +229,8 @@ func saveResponse(response ApiResponse, output string) {
 	fmt.Printf("received %d records: %s\n", len(response.Data), output)
 }
 
-func prepareBody() ([]byte, error) {
-	file, err := os.Open(inputFile)
+func prepareBody(path string) ([]byte, error) {
+	file, err := os.Open(fmt.Sprintf("%s%s", path, inputFile))
 	if err != nil {
 		return nil, fmt.Errorf("opening CSV file: %w", err)
 	}
@@ -267,8 +291,8 @@ func ConvertToWindows1251(utf8Str string) (string, error) {
 	return win1251Content, nil
 }
 
-func RemoveFiles() {
-	files, err := os.ReadDir("./")
+func (a *Api) removeFiles() {
+	files, err := os.ReadDir(a.outputPath)
 	if err != nil {
 		fmt.Println("reading directory:", err)
 		return

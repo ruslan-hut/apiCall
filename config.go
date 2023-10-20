@@ -7,7 +7,9 @@ import (
 )
 
 type Config struct {
-	BaseUrl string `yaml:"base_url" env-default:"https://test.site/"`
+	BaseUrl    string `yaml:"base_url" env-default:"https://test.site/"`
+	InputPath  string `yaml:"input_path" env-default:""`
+	OutputPath string `yaml:"output_path" env-default:""`
 }
 
 var instance *Config
