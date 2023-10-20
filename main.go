@@ -212,6 +212,8 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 		var record []string
 		for _, key := range header {
 			value := fmt.Sprintf("%v", row[key])
+			value = strings.ReplaceAll(value, "\n", "")
+			value = strings.ReplaceAll(value, "\r", "")
 			encoded, _ := ConvertToWindows1251(value)
 			//if err != nil {
 			//	fmt.Printf("failed to convert: %s\n", value)
@@ -301,7 +303,7 @@ func (a *Api) removeFiles() {
 	for _, file := range files {
 		if !file.IsDir() {
 			if strings.HasPrefix(file.Name(), "output") && strings.HasSuffix(file.Name(), ".csv") {
-				err := os.Remove(file.Name())
+				err := os.Remove(fmt.Sprintf("%s%s", a.outputPath, file.Name()))
 				if err != nil {
 					fmt.Printf("deleting file %s: %v\n", file.Name(), err)
 				}
