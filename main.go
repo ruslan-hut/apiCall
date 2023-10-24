@@ -106,6 +106,7 @@ func (a *Api) doHttpMethod(method string, data []byte, output string) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	//req.Header.Set("Content-Type", "text/plain")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -192,7 +193,7 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 
 	// Write header
 	if len(response.Data) == 0 {
-		fmt.Println("#Error: no data to write to CSV")
+		fmt.Println("#Warn: no data to write to CSV")
 		return
 	}
 
