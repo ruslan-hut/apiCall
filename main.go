@@ -90,7 +90,11 @@ func main() {
 
 	var jsonBytes []byte
 	if method != "GET" {
-		jsonBytes, _ = prepareBody(conf.InputPath)
+		jsonBytes, err = prepareBody(conf.InputPath)
+		if err != nil {
+			fmt.Println("#Error: preparing body:", err)
+			return
+		}
 	}
 
 	api.doHttpMethod(method, jsonBytes, outputFile)
@@ -233,7 +237,72 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 }
 
 func prepareBody(path string) ([]byte, error) {
-	file, err := os.Open(fmt.Sprintf("%s%s", path, inputFile))
+
+	singleFile, err := readFileContent(path, inputFile)
+	if err == nil {
+		return getJsonBytes(singleFile)
+	}
+
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading directory: %w", err)
+	}
+
+	result := make(map[string][]map[string]interface{})
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "input_") && strings.HasSuffix(file.Name(), ".csv") {
+
+			jsonPayload, err := readFileContent(path, file.Name())
+			if err != nil {
+				return nil, fmt.Errorf("preparing body: %s: %w", file.Name(), err)
+			}
+
+			//filePath := fmt.Sprintf("%s/%s", path, file.Name())
+			//fileContent, err := os.Open(filePath)
+			//if err != nil {
+			//	return nil, fmt.Errorf("opening CSV file %s: %w", filePath, err)
+			//}
+			//
+			//reader := csv.NewReader(fileContent)
+			//records, err := reader.ReadAll()
+			//if err != nil {
+			//	err := fileContent.Close()
+			//	if err != nil {
+			//		return nil, err
+			//	}
+			//	return nil, fmt.Errorf("reading CSV file %s: %w", filePath, err)
+			//}
+			//err = fileContent.Close()
+			//if err != nil {
+			//	return nil, err
+			//}
+
+			keyName := strings.TrimPrefix(file.Name(), "input_")
+			keyName = strings.TrimSuffix(keyName, ".csv")
+
+			//var jsonPayload []map[string]interface{}
+			//header := records[0]
+			//for _, row := range records[1:] {
+			//	record := make(map[string]interface{})
+			//	for i, key := range header {
+			//		field, err := ConvertToUTF8(row[i])
+			//		if err != nil {
+			//			fmt.Println("#Error: converting to utf-8:", err)
+			//		}
+			//		record[key] = field
+			//	}
+			//	jsonPayload = append(jsonPayload, record)
+			//}
+			result[keyName] = jsonPayload
+		}
+	}
+
+	return getJsonBytes(result)
+}
+
+func readFileContent(path, fileName string) ([]map[string]interface{}, error) {
+	file, err := os.Open(fmt.Sprintf("%s%s", path, fileName))
 	if err != nil {
 		return nil, fmt.Errorf("opening CSV file: %w", err)
 	}
@@ -244,6 +313,8 @@ func prepareBody(path string) ([]byte, error) {
 			return
 		}
 	}(file)
+
+	fmt.Println("Reading file:", fileName)
 
 	reader := csv.NewReader(file)
 	records, err := reader.ReadAll()
@@ -265,14 +336,17 @@ func prepareBody(path string) ([]byte, error) {
 		jsonPayload = append(jsonPayload, record)
 	}
 
-	jsonBytes, err := json.Marshal(jsonPayload)
+	return jsonPayload, nil
+}
+
+func getJsonBytes(v any) ([]byte, error) {
+	jsonBytes, err := json.Marshal(v)
 	if err != nil {
 		return nil, fmt.Errorf("marshalling JSON: %w", err)
 	}
 	fmt.Println("Body ===================================== >>>")
 	fmt.Printf("%s\n", string(jsonBytes))
 	fmt.Println("Body ===================================== <<<")
-
 	return jsonBytes, nil
 }
 
