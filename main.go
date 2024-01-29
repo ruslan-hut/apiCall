@@ -17,6 +17,7 @@ import (
 const (
 	outputFile = "output.csv"
 	inputFile  = "input.csv"
+	objectFile = "object.csv"
 )
 
 type ApiResponse struct {
@@ -238,7 +239,16 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 
 func prepareBody(path string) ([]byte, error) {
 
-	singleFile, err := readFileContent(path, inputFile)
+	singleFile, err := readFileContent(path, objectFile)
+	if err == nil {
+		if len(singleFile) > 0 {
+			obj := singleFile[0]
+			return getJsonBytes(obj)
+		}
+		return nil, fmt.Errorf("empty object data file")
+	}
+
+	singleFile, err = readFileContent(path, inputFile)
 	if err == nil {
 		return getJsonBytes(singleFile)
 	}
@@ -258,42 +268,9 @@ func prepareBody(path string) ([]byte, error) {
 				return nil, fmt.Errorf("preparing body: %s: %w", file.Name(), err)
 			}
 
-			//filePath := fmt.Sprintf("%s/%s", path, file.Name())
-			//fileContent, err := os.Open(filePath)
-			//if err != nil {
-			//	return nil, fmt.Errorf("opening CSV file %s: %w", filePath, err)
-			//}
-			//
-			//reader := csv.NewReader(fileContent)
-			//records, err := reader.ReadAll()
-			//if err != nil {
-			//	err := fileContent.Close()
-			//	if err != nil {
-			//		return nil, err
-			//	}
-			//	return nil, fmt.Errorf("reading CSV file %s: %w", filePath, err)
-			//}
-			//err = fileContent.Close()
-			//if err != nil {
-			//	return nil, err
-			//}
-
 			keyName := strings.TrimPrefix(file.Name(), "input_")
 			keyName = strings.TrimSuffix(keyName, ".csv")
 
-			//var jsonPayload []map[string]interface{}
-			//header := records[0]
-			//for _, row := range records[1:] {
-			//	record := make(map[string]interface{})
-			//	for i, key := range header {
-			//		field, err := ConvertToUTF8(row[i])
-			//		if err != nil {
-			//			fmt.Println("#Error: converting to utf-8:", err)
-			//		}
-			//		record[key] = field
-			//	}
-			//	jsonPayload = append(jsonPayload, record)
-			//}
 			result[keyName] = jsonPayload
 		}
 	}
