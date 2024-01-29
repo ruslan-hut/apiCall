@@ -20,11 +20,11 @@ const (
 )
 
 type ApiResponse struct {
-	Success bool                     `json:"success"`
-	Message string                   `json:"message"`
-	Errors  []string                 `json:"errors"`
-	Data    []map[string]interface{} `json:"data"`
-	Meta    PageData                 `json:"meta"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	//Errors  []string                 `json:"errors"`
+	Data []map[string]interface{} `json:"data"`
+	Meta PageData                 `json:"meta"`
 }
 
 type PageData struct {
@@ -147,9 +147,9 @@ func (a *Api) doHttpMethod(method string, data []byte, output string) {
 		if apiResponse.Message != "" {
 			fmt.Println("#Error: ", apiResponse.Message)
 		}
-		if len(apiResponse.Errors) > 0 {
-			fmt.Println("#Error: ", apiResponse.Errors)
-		}
+		//if len(apiResponse.Errors) > 0 {
+		//	fmt.Println("#Error: ", apiResponse.Errors)
+		//}
 		return
 	}
 
