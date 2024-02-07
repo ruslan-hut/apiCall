@@ -44,6 +44,7 @@ func main() {
 	configPath := flag.String("conf", "config.yml", "path to config file")
 	apiURL := flag.String("url", "", "API resource URL to fetch data from")
 	apiMethod := flag.String("method", "GET", "HTTP method (GET, POST, etc.)")
+	workPath := flag.String("path", "", "working directory")
 	flag.Parse()
 
 	if *apiURL == "" {
@@ -67,6 +68,10 @@ func main() {
 		url:        fmt.Sprintf("%s%s", baseUrl, *apiURL),
 		inputPath:  conf.InputPath,
 		outputPath: conf.OutputPath,
+	}
+	if workPath != nil && *workPath != "" {
+		api.inputPath = *workPath
+		api.outputPath = *workPath
 	}
 
 	logFile := fmt.Sprintf("%serrors.log", conf.OutputPath)
