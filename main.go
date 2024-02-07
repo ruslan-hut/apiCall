@@ -74,7 +74,7 @@ func main() {
 		api.outputPath = *workPath
 	}
 
-	logFile := fmt.Sprintf("%serrors.log", conf.OutputPath)
+	logFile := fmt.Sprintf("%serrors.log", api.outputPath)
 	_ = os.Remove(logFile)
 	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -96,7 +96,7 @@ func main() {
 
 	var jsonBytes []byte
 	if method != "GET" {
-		jsonBytes, err = prepareBody(conf.InputPath)
+		jsonBytes, err = prepareBody(api.inputPath)
 		if err != nil {
 			fmt.Println("#Error: preparing body:", err)
 			return
