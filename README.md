@@ -10,3 +10,49 @@ The data received from the API call is saved into an "output.csv" file.
 Logs and errors are recorded in an "errors.log" file.
 
 Cyrillic values are converted from Windows-1251 to UTF-8 encoding before sending. Received data is converted vice versa.
+
+## Usage
+Place the "config.yml" file in the same directory as the application binary.
+In the config file, specify the base URL for API calls.
+```yml
+---
+
+base_url: https://my-test.site/api/v1
+```
+### GET request
+To make a GET request on url https://my-test.site/api/v1/resourse, run the application with the following command:
+```bash
+call.exe -url=/resource -method=GET
+```
+### POST request
+To make POST requests, create an "input.csv" file in the same directory as the application binary. The first row must contain the JSON keys. The following rows must contain the JSON values.
+```csv
+key1,key2,key3
+value1,value2,value3
+value4,value5,value6
+```
+This example will create the following JSON payload:
+```json
+[
+    {
+        "key1": "value1",
+        "key2": "value2",
+        "key3": "value3"
+    },
+    {
+        "key1": "value4",
+        "key2": "value5",
+        "key3": "value6"
+    }
+]
+```
+Example of a POST request, body is taken from "input.csv" file:
+```bash
+call.exe -url=/resource -method=POST
+```
+To send a single JSON object, create an "object.csv" file with two rows, keys and values.
+### Help
+To display the help message, run the application with the following command:
+```bash
+call.exe -help
+```
