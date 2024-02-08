@@ -260,7 +260,7 @@ func prepareBody(path string) ([]byte, error) {
 
 	files, err := os.ReadDir(path)
 	if err != nil {
-		return nil, fmt.Errorf("reading directory: %w", err)
+		return nil, fmt.Errorf("reading directory: %s: %s", path, err)
 	}
 
 	result := make(map[string][]map[string]interface{})
@@ -270,7 +270,7 @@ func prepareBody(path string) ([]byte, error) {
 
 			jsonPayload, err := readFileContent(path, file.Name())
 			if err != nil {
-				return nil, fmt.Errorf("preparing body: %s: %w", file.Name(), err)
+				return nil, fmt.Errorf("reading file content: %s: %w", file.Name(), err)
 			}
 
 			keyName := strings.TrimPrefix(file.Name(), "input_")
