@@ -188,13 +188,13 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 	// Create CSV file
 	csvFile, err := os.Create(fmt.Sprintf("%s%s", a.outputPath, output))
 	if err != nil {
-		fmt.Println("#Error: creating CSV file:", err)
+		fmt.Println("#Error: creating file:", err)
 		return
 	}
 	defer func(csvFile *os.File) {
 		err := csvFile.Close()
 		if err != nil {
-			fmt.Println("#Error: closing CSV file:", err)
+			fmt.Println("#Error: closing file:", err)
 			return
 		}
 	}(csvFile)
@@ -203,7 +203,7 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 
 	// Write header
 	if len(response.Data) == 0 {
-		fmt.Println("#Warn: no data to write to CSV")
+		fmt.Println("#Warn: no data to write")
 		return
 	}
 
@@ -214,7 +214,7 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 	}
 	err = writer.Write(header)
 	if err != nil {
-		fmt.Println("#Error: writing CSV header:", err)
+		fmt.Println("#Error: writing header:", err)
 		return
 	}
 
@@ -233,7 +233,7 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 		}
 		err := writer.Write(record)
 		if err != nil {
-			fmt.Println("#Error: writing CSV record:", err)
+			fmt.Println("#Error: writing record:", err)
 			return
 		}
 	}
@@ -286,12 +286,12 @@ func prepareBody(path string) ([]byte, error) {
 func readFileContent(path, fileName string) ([]map[string]interface{}, error) {
 	file, err := os.Open(fmt.Sprintf("%s%s", path, fileName))
 	if err != nil {
-		return nil, fmt.Errorf("opening CSV file: %w", err)
+		return nil, fmt.Errorf("opening file: %s: %s", fileName, err)
 	}
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-			fmt.Println("#Error: closing CSV file:", err)
+			fmt.Println("#Error: closing file:", err)
 			return
 		}
 	}(file)
@@ -301,7 +301,7 @@ func readFileContent(path, fileName string) ([]map[string]interface{}, error) {
 	reader := csv.NewReader(file)
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("reading CSV file: %w", err)
+		return nil, fmt.Errorf("reading file: %w", err)
 	}
 
 	var jsonPayload []map[string]interface{}
