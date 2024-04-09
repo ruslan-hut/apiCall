@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"golang.org/x/text/encoding/charmap"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -45,6 +46,7 @@ func main() {
 	apiURL := flag.String("url", "", "API resource URL to fetch data from")
 	apiMethod := flag.String("method", "GET", "HTTP method (GET, POST, etc.)")
 	workPath := flag.String("path", "", "working directory")
+	boundary := flag.String("boundary", "", "File name to be send using boundary")
 	flag.Parse()
 
 	if *apiURL == "" {
@@ -93,6 +95,11 @@ func main() {
 	api.removeFiles()
 
 	method := strings.ToUpper(*apiMethod)
+
+	if boundary != nil && *boundary != "" && method == "POST" {
+		api.doMultipartPost(*boundary)
+		return
+	}
 
 	var jsonBytes []byte
 	if method != "GET" {
@@ -367,4 +374,83 @@ func (a *Api) removeFiles() {
 			}
 		}
 	}
+}
+
+func (a *Api) doMultipartPost(boundary string) {
+	fmt.Printf("POST: %s\n", a.url)
+
+	file, err := os.Open(fmt.Sprintf("%s%s", a.inputPath, boundary))
+	if err != nil {
+		fmt.Println("#Error: opening file:", err)
+		return
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			fmt.Println("#Error: closing file:", err)
+			return
+		}
+	}(file)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", boundary)
+	if err != nil {
+		fmt.Println("#Error: creating form file:", err)
+		return
+	}
+
+	_, err = io.Copy(part, file)
+	if err != nil {
+		fmt.Println("#Error: copying file to form file:", err)
+		return
+	}
+
+	err = writer.Close()
+	if err != nil {
+		fmt.Println("#Error: closing writer:", err)
+		return
+	}
+
+	fmt.Println("Body ===================================== >>>")
+	fmt.Printf("%s\n", body)
+	fmt.Println("Body ===================================== <<<")
+
+	req, err := http.NewRequest("POST", a.url, body)
+	if err != nil {
+		fmt.Println("#Error: creating request:", err)
+		return
+	}
+	content := writer.FormDataContentType()
+	fmt.Println("Content-Type:", content)
+	req.Header.Set("Content-Type", content)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("#Error: making request:", err)
+		return
+	}
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("#Error: closing response body:", err)
+			return
+		}
+	}(resp.Body)
+
+	if resp.StatusCode > 299 {
+		fmt.Printf("#Error: response status %s\n", resp.Status)
+	}
+
+	//response, err := io.ReadAll(resp.Body)
+	//if err != nil {
+	//	fmt.Println("#Error: reading response body:", err)
+	//	return
+	//}
+	//
+	//fmt.Println("Response ===================================== >>>")
+	//fmt.Printf("%s\n", string(response))
+	//fmt.Println("Response ===================================== <<<")
 }
