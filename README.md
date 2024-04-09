@@ -18,6 +18,8 @@ In the config file, specify the base URL for API calls.
 ---
 
 base_url: https://my-test.site/api/v1
+input_path: c:\work_dir\
+output_path: c:\work_dir\
 ```
 ### GET request
 To make a GET request on url https://my-test.site/api/v1/resourse, run the application with the following command:
@@ -25,7 +27,7 @@ To make a GET request on url https://my-test.site/api/v1/resourse, run the appli
 call.exe -url=/resource -method=GET
 ```
 ### POST request
-To make POST requests, create an `input.csv` file in the same directory as the application binary. The first row must contain the JSON keys. The following rows must contain the JSON values.
+To make POST requests, create an `input.csv` file in the input directory, `input_path` parameter of config file. The first row must contain the JSON keys. The following rows must contain the JSON values.
 ```csv
 key1,key2,key3
 value1,value2,value3
@@ -51,6 +53,12 @@ Example of a POST request, body is taken from `input.csv` file:
 call.exe -url=/resource -method=POST
 ```
 To send a single JSON object, create an `object.csv` file with two rows, keys and values.
+### POST file as boundary
+To send a file as a boundary, use parameter `-boundary` with the file name.
+```bash
+call.exe -url=/resource -method=POST -boundary=[fileName]
+```
+`fileName` is the name of the file to be sent as a boundary, it must be placed in the input directory, `input_path` parameter in config file.
 ### Help
 To display the help message, run the application with the following command:
 ```bash
