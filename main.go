@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -42,7 +43,8 @@ type Api struct {
 }
 
 func main() {
-	fmt.Println("Starting Api Caller v1.0.0")
+	fmt.Println("...Starting Api Caller v1.0.2 (c) 2024 dev@programmer.com.ua")
+	now := time.Now()
 
 	configPath := flag.String("conf", "config.yml", "path to config file")
 	apiURL := flag.String("url", "", "API resource URL to fetch data from")
@@ -87,7 +89,8 @@ func main() {
 		return
 	}
 	defer func(file *os.File) {
-		err := file.Close()
+		fmt.Printf("Finished in %s\n", time.Since(now))
+		err = file.Close()
 		if err != nil {
 			fmt.Println("closing log file:", err)
 			return
