@@ -38,9 +38,11 @@ type Api struct {
 	url        string
 	inputPath  string
 	outputPath string
+	token      string
 }
 
 func main() {
+	fmt.Println("Starting Api Caller v1.0.0")
 
 	configPath := flag.String("conf", "config.yml", "path to config file")
 	apiURL := flag.String("url", "", "API resource URL to fetch data from")
@@ -70,6 +72,7 @@ func main() {
 		url:        fmt.Sprintf("%s%s", baseUrl, *apiURL),
 		inputPath:  conf.InputPath,
 		outputPath: conf.OutputPath,
+		token:      conf.BearerToken,
 	}
 	if workPath != nil && *workPath != "" {
 		api.inputPath = *workPath
@@ -123,7 +126,9 @@ func (a *Api) doHttpMethod(method string, data []byte, output string) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-	//req.Header.Set("Content-Type", "text/plain")
+	if a.token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -385,7 +390,7 @@ func (a *Api) doMultipartPost(boundary string) {
 		return
 	}
 	defer func(file *os.File) {
-		err := file.Close()
+		err = file.Close()
 		if err != nil {
 			fmt.Println("#Error: closing file:", err)
 			return
