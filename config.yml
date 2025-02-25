@@ -3,3 +3,4 @@
 base_url: https://test.site/
 input_path: input
 output_path: output
+bearer_token: abc

@@ -4,6 +4,7 @@ Perform simple API calls and save the results into CSV files.
 The program accepts command-line parameters that specify the method name and resource path: `-url` and `-method`.
 Config file `config.yml` must contain a base URL for API calls.
 If a method requires a JSON-formatted body, place an `input.csv` file adjacent to the application binary. Before executing the HTTP method, the CSV file will be converted into a JSON payload.
+Supports authentication with a bearer token.
 
 The data received from the API call is saved into an `output.csv` file.
 
@@ -20,6 +21,7 @@ In the config file, specify the base URL for API calls.
 base_url: https://my-test.site/api/v1
 input_path: c:\work_dir\
 output_path: c:\work_dir\
+bearer_token: my_token
 ```
 It's possible to use parameter `-path` to specify the working directory. In that case the config parameters `input_path` and `output_path` will be ignored.
 Example command line with the path and config parameters:
