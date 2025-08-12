@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"golang.org/x/text/encoding/charmap"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 const (
@@ -141,7 +142,7 @@ func (a *Api) doHttpMethod(method string, data []byte, output string) {
 	}
 
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
+		err = Body.Close()
 		if err != nil {
 			fmt.Println("#Error: closing response body:", err)
 			return
@@ -155,7 +156,10 @@ func (a *Api) doHttpMethod(method string, data []byte, output string) {
 	}
 
 	var apiResponse ApiResponse
-	err = json.Unmarshal(body, &apiResponse)
+	//err = json.Unmarshal(body, &apiResponse)
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.UseNumber()
+	err = dec.Decode(&apiResponse)
 	if err != nil {
 		fmt.Println("Response ===================================== >>>")
 		fmt.Printf("%s\n", string(body))
@@ -207,7 +211,7 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 		return
 	}
 	defer func(csvFile *os.File) {
-		err := csvFile.Close()
+		err = csvFile.Close()
 		if err != nil {
 			fmt.Println("#Error: closing file:", err)
 			return
@@ -246,7 +250,7 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 			//}
 			record = append(record, encoded)
 		}
-		err := writer.Write(record)
+		err = writer.Write(record)
 		if err != nil {
 			fmt.Println("#Error: writing record:", err)
 			return
@@ -461,4 +465,53 @@ func (a *Api) doMultipartPost(boundary string) {
 	//fmt.Println("Response ===================================== >>>")
 	//fmt.Printf("%s\n", string(response))
 	//fmt.Println("Response ===================================== <<<")
+}
+
+// DecodeJSON parses a JSON-encoded byte slice into a generic interface and validates that the top-level object is a map.
+// It converts JSON numbers to int64 or float64 where applicable for numeric accuracy. Returns the parsed object or an error.
+func DecodeJSON(body []byte) (map[string]interface{}, error) {
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.UseNumber()
+
+	var v any
+	if err := dec.Decode(&v); err != nil {
+		return nil, err
+	}
+
+	obj, ok := normalizeNumbers(v).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("expected top-level JSON object, got %T", v)
+	}
+	return obj, nil
+}
+
+// normalizeNumbers converts json.Number types to int64 or float64 where applicable, preserving the structure of the input.
+func normalizeNumbers(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		m := make(map[string]any, len(x))
+		for k, val := range x {
+			m[k] = normalizeNumbers(val)
+		}
+		return m
+	case []any:
+		s := make([]any, len(x))
+		for i, val := range x {
+			s[i] = normalizeNumbers(val)
+		}
+		return s
+	case json.Number:
+		// Сначала пытаемся как целое
+		if i, err := x.Int64(); err == nil {
+			return i
+		}
+		// Иначе как float64 (учти возможную потерю точности у очень больших чисел)
+		if f, err := x.Float64(); err == nil {
+			return f
+		}
+		// Фолбэк — оставить строкой
+		return x.String()
+	default:
+		return v
+	}
 }
