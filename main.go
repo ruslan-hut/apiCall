@@ -41,10 +41,11 @@ type Api struct {
 	inputPath  string
 	outputPath string
 	token      string
+	debug      bool
 }
 
 func main() {
-	fmt.Println("...Starting Api Caller v1.0.2 (c) 2024 dev@programmer.com.ua")
+	fmt.Println("...Starting Api Caller v1.0.3 (c) 2025 dev@programmer.com.ua")
 	now := time.Now()
 
 	configPath := flag.String("conf", "config.yml", "path to config file")
@@ -52,6 +53,7 @@ func main() {
 	apiMethod := flag.String("method", "GET", "HTTP method (GET, POST, etc.)")
 	workPath := flag.String("path", "", "working directory")
 	boundary := flag.String("boundary", "", "File name to be send using boundary")
+	debug := flag.Bool("debug", false, "enable debug mode")
 	flag.Parse()
 
 	if *apiURL == "" {
@@ -80,6 +82,15 @@ func main() {
 	if workPath != nil && *workPath != "" {
 		api.inputPath = *workPath
 		api.outputPath = *workPath
+	}
+	if *debug {
+		fmt.Println("Debug mode is ON")
+		fmt.Println("Config file:", *configPath)
+		fmt.Println("API URL:", *apiURL)
+		fmt.Println("API Method:", *apiMethod)
+		fmt.Println("Working directory:", workPath)
+		fmt.Println("Boundary:", *boundary)
+		api.debug = true
 	}
 
 	logFile := fmt.Sprintf("%serrors.log", api.outputPath)
@@ -155,15 +166,18 @@ func (a *Api) doHttpMethod(method string, data []byte, output string) {
 		return
 	}
 
+	if a.debug {
+		fmt.Println("Response ===================================== >>>")
+		fmt.Printf("%s\n", string(body))
+		fmt.Println("Response ===================================== <<<")
+	}
+
 	var apiResponse ApiResponse
 	//err = json.Unmarshal(body, &apiResponse)
 	dec := json.NewDecoder(bytes.NewReader(body))
 	dec.UseNumber()
 	err = dec.Decode(&apiResponse)
 	if err != nil {
-		fmt.Println("Response ===================================== >>>")
-		fmt.Printf("%s\n", string(body))
-		fmt.Println("Response ===================================== <<<")
 		fmt.Println("#Error: parsing JSON:", err)
 		return
 	}
