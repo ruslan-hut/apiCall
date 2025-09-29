@@ -13,7 +13,9 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode"
 
+	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -256,12 +258,13 @@ func (a *Api) saveResponse(response ApiResponse, output string) {
 		var record []string
 		for _, key := range header {
 			value := fmt.Sprintf("%v", row[key])
-			value = strings.ReplaceAll(value, "\n", "")
+			value = strings.ReplaceAll(value, "\n", " ")
 			value = strings.ReplaceAll(value, "\r", "")
-			encoded, _ := ConvertToWindows1251(value)
-			//if err != nil {
-			//	fmt.Printf("failed to convert: %s\n", value)
-			//}
+			encoded, e := ConvertToWindows1251(value)
+			if a.debug && e != nil {
+				fmt.Printf("#Error: converting string: %s\n", e)
+				fmt.Printf("#Error: failed to convert: %s\n", value)
+			}
 			record = append(record, encoded)
 		}
 		err = writer.Write(record)
@@ -375,11 +378,18 @@ func ConvertToUTF8(win1251 string) (string, error) {
 }
 
 func ConvertToWindows1251(utf8Str string) (string, error) {
-	encoder := charmap.Windows1251.NewEncoder()
-	win1251Content, err := encoder.String(utf8Str)
+	enc := encoding.ReplaceUnsupported(charmap.Windows1251.NewEncoder())
+	win1251Content, err := enc.String(utf8Str)
 	if err != nil {
 		return "", err
 	}
+
+	// replace all '?' (replacement) with space
+	win1251Content = strings.ReplaceAll(win1251Content, "?", " ")
+
+	// collapse multiple spaces into one
+	win1251Content = strings.Join(strings.FieldsFunc(win1251Content, unicode.IsSpace), " ")
+
 	return win1251Content, nil
 }
 
